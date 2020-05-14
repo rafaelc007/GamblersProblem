@@ -8,9 +8,11 @@ class GamblerPolIter:
     _max_cash = 100
     _min_cash = 0
     _heads_prob = 0.4
-    _disc_fact = 0.9
+    _disc_fact = 1
 
-    value = np.zeros(_max_cash + 1, dtype=float)    #include state zero cash
+    value = np.random.random(_max_cash+1)    #include state zero cash
+    value[0] = 0
+    value[-1] = 0
     policy = value.copy().astype(int)
 
     def set_values(self, val):
@@ -33,33 +35,29 @@ class GamblerPolIter:
         if state == 100:
             return 0
 
+
         # there is one discrete random variable which determine the probability distribution of the reward and next state
         # the variable is the coin result
 
         for val, Prob in enumerate([self._heads_prob, 1-self._heads_prob]):
-
             if val == 1:
                 new_state = max(min(state - action, self._max_cash), 0)
             elif val == 0:
                 new_state = max(min(state + action, self._max_cash), 0)
 
             # reward is 1 for the final positive state and zero otherwise
-            rew = 1 if new_state >= self._max_cash else 0
-
+            rew = 1 if new_state == self._max_cash else 0
             # Bellman's equation
             rw += Prob * (rew + self._disc_fact * self.value[new_state])
 
         return rw
 
     # initial value of eps_param
-    _eps_param = 1e-3
+    _eps_param = 1e-30
 
     def policy_iteration(self):
 
-        # here policy_evaluation has a static variable eps_param whose values decreases over time
-        eps_param = self._eps_param
-
-        self._eps_param /= 10
+        # self._eps_param /= 10
 
         while True:
             delta_param = 0
@@ -67,22 +65,19 @@ class GamblerPolIter:
             for s in range(1, self.value.size-1):
                 old_val = self.value[s]
                 # max action allowed is actual cash amount (s)
-                exp_rw = [self.expected_reward(s, a) for a in range(s+1)]
-                self.value[s] = np.max(exp_rw)
+                exp_rw = [self.expected_reward(s, a) for a in range(1, min(s, 100-s)+1)]
+                self.policy[s] = np.argmax(exp_rw)
+                self.value[s] = exp_rw[self.policy[s]]
 
                 delta_param = max(delta_param, abs(self.value[s] - old_val))
-
                 print('.', end='')
                 sys.stdout.flush()
             print(delta_param)
             sys.stdout.flush()
 
-            if delta_param < eps_param:
+            if delta_param < self._eps_param:
                 break
-        for s in range(1, self.policy.size-1):
-            exp_rw = [self.expected_reward(s, a) for a in range(s+1)]
-            act_chos = np.argmax(exp_rw)
-            self.policy[s] = np.argmax(exp_rw)
+
 
 
     def save_value(self):

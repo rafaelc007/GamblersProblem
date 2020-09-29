@@ -1,2 +1,2 @@
 # GamblersProblem
-Quick implementation of Gamblers problem from RL book.
+Quick implementation of Gamblers problem from Reinforcement Learning book.
